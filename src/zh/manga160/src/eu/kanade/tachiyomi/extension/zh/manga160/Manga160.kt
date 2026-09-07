@@ -107,17 +107,16 @@ abstract class Manga160 : KeiSource() {
         }
     }
 
-    private fun parseChapterList(document: Document): List<SChapter> =
-        document.select(".cy_plist ul > li > a[href]")
-            .mapNotNull { anchor ->
-                val name = anchor.selectFirst("p")?.text()?.takeIf { it.isNotBlank() }
-                    ?: return@mapNotNull null
-                SChapter.create().apply {
-                    this.name = name
-                    setUrlWithoutDomain(anchor.absUrl("href"))
-                }
+    private fun parseChapterList(document: Document): List<SChapter> = document.select(".cy_plist ul > li > a[href]")
+        .mapNotNull { anchor ->
+            val name = anchor.selectFirst("p")?.text()?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            SChapter.create().apply {
+                this.name = name
+                setUrlWithoutDomain(anchor.absUrl("href"))
             }
-            .distinctBy { it.url }
+        }
+        .distinctBy { it.url }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         val document = client.get(baseUrl + chapter.url).asJsoup()
@@ -175,8 +174,7 @@ abstract class Manga160 : KeiSource() {
         else -> null
     }
 
-    private fun decodeBase64(value: String): String =
-        String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
+    private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
 
     companion object {
         private const val PAGE_SEPARATOR = "\$qingtiandy\$"
