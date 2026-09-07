@@ -33,7 +33,10 @@ abstract class Dm5 :
 
     override val supportsLatest = true
 
-    override val client = network.client.newBuilder().addInterceptor(CommentsInterceptor).build()
+    override val client = network.client.newBuilder()
+        .addInterceptor(SearchInterceptor)
+        .addInterceptor(CommentsInterceptor)
+        .build()
 
     private val preferences by getPreferencesLazy()
 
