@@ -12,6 +12,7 @@ import keiyoushi.network.get
 import keiyoushi.network.post
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
+import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -22,6 +23,10 @@ import java.net.URLEncoder
 
 @Source
 abstract class LaiManhua : KeiSource() {
+
+    // Mobile requests are redirected to a page that omits the image data.
+    override fun Headers.Builder.configureHeaders() = removeAll("Origin")
+        .set("User-Agent", DESKTOP_USER_AGENT)
 
     override suspend fun getPopularManga(page: Int): MangasPage {
         if (page > 1) return emptyMangaPage()
@@ -140,7 +145,10 @@ abstract class LaiManhua : KeiSource() {
         .distinctBy { it.url }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val document = client.get(baseUrl + chapter.url).asJsoup()
+        val chapterUrl = (baseUrl + chapter.url).toHttpUrl().newBuilder()
+            .addQueryParameter("_desktop", "1")
+            .build()
+        val document = client.get(chapterUrl).asJsoup()
         val scripts = document.select("script").joinToString("\n") { it.data() }
         val pageData = PAGE_DATA_REGEX.find(scripts)?.groupValues?.get(1)
             ?.takeIf { it.isNotBlank() }
@@ -182,6 +190,9 @@ abstract class LaiManhua : KeiSource() {
         private const val LEGACY_CHAPTER_ID_LIMIT = 542724L
         private const val IMAGE_HOST = "https://mhpicwwt.tgmhfc.uk"
         private const val LEGACY_IMAGE_HOST = "https://mhpic6.tgmhfc.uk"
+        private const val DESKTOP_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
 
         private val FORM_MEDIA_TYPE = "application/x-www-form-urlencoded".toMediaType()
         private val PAGE_DATA_REGEX = Regex("""var\s+picTree\s*=\s*['"]([^'"]*)""")
