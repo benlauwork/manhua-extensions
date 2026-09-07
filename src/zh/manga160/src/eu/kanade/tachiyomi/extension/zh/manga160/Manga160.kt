@@ -11,6 +11,7 @@ import keiyoushi.annotation.Source
 import keiyoushi.network.get
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
+import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.nodes.Document
@@ -18,6 +19,9 @@ import org.jsoup.nodes.Element
 
 @Source
 abstract class Manga160 : KeiSource() {
+
+    // The site redirects requests carrying an Origin header to its incomplete mobile host.
+    override fun Headers.Builder.configureHeaders() = removeAll("Origin")
 
     override suspend fun getPopularManga(page: Int): MangasPage {
         val pageUrl = if (page == 1) {

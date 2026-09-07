@@ -119,8 +119,12 @@ jobs:
           if git -C "$publish_dir" fetch --depth=1 origin repo; then
             git -C "$publish_dir" checkout -B repo FETCH_HEAD
           fi
-          cp "$output_dir/index.pb" "$output_dir/index.json" "$output_dir/repo.json" "$output_dir/index.html" "$output_dir/README.md" "$publish_dir/"
-          git -C "$publish_dir" add index.pb index.json repo.json index.html README.md
+          cp "$output_dir/index.pb" "$output_dir/index.json" "$output_dir/index.min.json" "$output_dir/repo.json" "$output_dir/index.html" "$output_dir/README.md" "$publish_dir/"
+          mkdir -p "$publish_dir/apk" "$publish_dir/icon"
+          find "$publish_dir/apk" "$publish_dir/icon" -type f -delete
+          cp "$output_dir"/apk/*.apk "$publish_dir/apk/"
+          cp "$output_dir"/icon/*.png "$publish_dir/icon/"
+          git -C "$publish_dir" add index.pb index.json index.min.json repo.json index.html README.md apk icon
           git -C "$publish_dir" config user.name github-actions[bot]
           git -C "$publish_dir" config user.email 41898282+github-actions[bot]@users.noreply.github.com
           if [ -n "$(git -C "$publish_dir" status --porcelain)" ]; then

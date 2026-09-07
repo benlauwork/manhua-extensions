@@ -21,6 +21,8 @@ def main() -> None:
         json_index = json_format.Parse(json_file.read(), index_pb2.Index())
     with args.directory.joinpath("repo.json").open(encoding="utf-8") as repo_file:
         repo = json.load(repo_file)
+    with args.directory.joinpath("index.min.json").open(encoding="utf-8") as legacy_file:
+        tachimanga_extensions = json.load(legacy_file)
 
     if proto_index.SerializeToString(deterministic=True) != json_index.SerializeToString(deterministic=True):
         raise ValueError("index.pb and index.json contain different data")
@@ -39,6 +41,8 @@ def main() -> None:
     package_names = [extension.packageName for extension in extensions]
     if len(set(package_names)) != len(package_names):
         raise ValueError("Extension package names must be unique")
+    if {extension["pkg"] for extension in tachimanga_extensions} != set(package_names):
+        raise ValueError("Tachimanga and Mihon indexes contain different extension packages")
 
     for extension in extensions:
         if not extension.resources.apkUrl.startswith("https://"):
@@ -47,6 +51,16 @@ def main() -> None:
             raise ValueError(f"{extension.name} JAR URL must use HTTPS")
         if not extension.resources.iconUrl.startswith("https://"):
             raise ValueError(f"{extension.name} icon URL must use HTTPS")
+
+        tachimanga_extension = next(
+            item for item in tachimanga_extensions if item["pkg"] == extension.packageName
+        )
+        if tachimanga_extension["version"] != extension.versionName:
+            raise ValueError(f"{extension.name} has mismatched Mihon and Tachimanga versions")
+        if not args.directory.joinpath("apk", tachimanga_extension["apk"]).is_file():
+            raise ValueError(f"{extension.name} Tachimanga APK is missing")
+        if not args.directory.joinpath("icon", f"{extension.packageName}.png").is_file():
+            raise ValueError(f"{extension.name} Tachimanga icon is missing")
 
     summary = ", ".join(
         f"{extension.name} {extension.versionName}" for extension in extensions

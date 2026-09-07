@@ -30,6 +30,12 @@
    https://github.com/benlauwork/manhua-extensions/raw/repo/index.pb
    ```
 
+   Tachimanga（iOS）請改用佢支援嘅 legacy JSON repository：
+
+   ```text
+   https://raw.githubusercontent.com/benlauwork/manhua-extensions/repo/index.min.json
+   ```
+
 更新某個 extension 時，增加對應 [`Manga 160 versionCode`](src/zh/manga160/build.gradle.kts) 或 [`DM5 versionCode`](src/zh/dm5/build.gradle.kts)，再推送。簽署金鑰必須一直沿用同一個，否則已安裝用戶唔會視新 APK 為可信更新。
 
 DM5 保留咗上游 extension 嘅 package 同 source ID，方便接續原有書庫資料。由於你私人 repo 使用自己嘅簽署金鑰，如果裝置已有 Keiyoushi 官方 DM5 extension，需要先移除官方 APK，先可以安裝呢個私人簽名版本；兩者唔可以同時安裝。

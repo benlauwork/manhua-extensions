@@ -4,6 +4,7 @@ import argparse
 import gzip
 import html
 import json
+import shutil
 from pathlib import Path
 from urllib.parse import quote
 
@@ -69,6 +70,41 @@ def make_extension(
     )
 
 
+def make_tachimanga_extension(source_info: Path) -> tuple[dict, Path, Path]:
+    with source_info.open(encoding="utf-8") as source_file:
+        info = json.load(source_file)
+
+    apk = find_artifact(source_info, "apk", ".apk")
+    module_dir = source_info.parent.parent
+    icon = module_dir / "res" / "mipmap-xhdpi" / "ic_launcher.png"
+    if not icon.is_file():
+        raise ValueError(f"Missing extension icon: {icon}")
+
+    languages = {source["lang"] for source in info["sources"]}
+    language = next(iter(languages)) if len(languages) == 1 else "all"
+    extension_code = int(info["versionName"].rsplit(".", 1)[-1])
+    entry = {
+        "name": f"Tachiyomi: {info['name']}",
+        "pkg": info["packageName"],
+        "apk": apk.name,
+        "lang": language,
+        "code": extension_code,
+        "version": info["versionName"],
+        "nsfw": 0 if info["contentWarning"] == 1 else 1,
+        "sources": [
+            {
+                "name": source["name"],
+                "lang": source["lang"],
+                "id": str(source["id"]),
+                "baseUrl": source["baseUrl"],
+                "versionId": 1,
+            }
+            for source in info["sources"]
+        ],
+    }
+    return entry, apk, icon
+
+
 def main() -> None:
     args = parse_args()
     fingerprint = args.signing_fingerprint.replace(":", "").lower()
@@ -93,7 +129,28 @@ def main() -> None:
     )
 
     args.output.mkdir(parents=True, exist_ok=True)
+    apk_output = args.output / "apk"
+    icon_output = args.output / "icon"
+    apk_output.mkdir(exist_ok=True)
+    icon_output.mkdir(exist_ok=True)
     index_url = f"https://raw.githubusercontent.com/{args.repository}/repo/index.pb"
+
+    tachimanga_extensions = []
+    for source_info in args.source_info:
+        entry, apk, icon = make_tachimanga_extension(source_info)
+        tachimanga_extensions.append(entry)
+        shutil.copy2(apk, apk_output / apk.name)
+        shutil.copy2(icon, icon_output / f"{entry['pkg']}.png")
+    tachimanga_extensions.sort(key=lambda extension: extension["name"].lower())
+
+    with args.output.joinpath("index.min.json").open("w", encoding="utf-8") as output_file:
+        json.dump(
+            tachimanga_extensions,
+            output_file,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        output_file.write("\n")
 
     with args.output.joinpath("index.json").open("w", encoding="utf-8") as output_file:
         output_file.write(
@@ -149,7 +206,9 @@ def main() -> None:
             "# Manhua Extensions\n\n"
             f"{source_names}\n\n"
             "將以下地址加入 Mihon 的擴充套件儲存庫：\n\n"
-            f"```text\n{index_url}\n```\n"
+            f"```text\n{index_url}\n```\n\n"
+            "Tachimanga 請使用：\n\n"
+            f"```text\nhttps://raw.githubusercontent.com/{args.repository}/repo/index.min.json\n```\n"
         )
 
 
