@@ -1,0 +1,58 @@
+{
+  "name": "Manhua Extensions",
+  "badgeLabel": "2 sources",
+  "signingKey": "6d49d56311e9d842166ea1fde30cd10740ed941fbbf343fc6a9efab60f391f09",
+  "contact": {
+    "website": "https://github.com/benlauwork/manhua-extensions"
+  },
+  "extensionList": {
+    "extensions": [
+      {
+        "name": "Dm5",
+        "packageName": "eu.kanade.tachiyomi.extension.zh.dm5",
+        "resources": {
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-60278c7/tachiyomi-zh.dm5-v1.4.10.apk",
+          "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/dm5/res/mipmap-xhdpi/ic_launcher.png",
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-60278c7/tachiyomi-zh.dm5-v1.4.10.jar"
+        },
+        "extensionLib": "1.4",
+        "versionCode": "104010",
+        "versionName": "1.4.10",
+        "contentWarning": "CONTENT_WARNING_MIXED",
+        "sources": [
+          {
+            "id": "293789630396851172",
+            "name": "\u52a8\u6f2b\u5c4b",
+            "language": "zh",
+            "homeUrl": "https://www.dm5.cn",
+            "mirrorUrls": [
+              "https://www.dm5.cn",
+              "https://www.dm5.com"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Manga 160",
+        "packageName": "eu.kanade.tachiyomi.extension.zh.manga160",
+        "resources": {
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-60278c7/tachiyomi-zh.manga160-v1.6.1.apk",
+          "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/manga160/res/mipmap-xhdpi/ic_launcher.png",
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-60278c7/tachiyomi-zh.manga160-v1.6.1.jar"
+        },
+        "extensionLib": "1.6",
+        "versionCode": "106001",
+        "versionName": "1.6.1",
+        "contentWarning": "CONTENT_WARNING_MIXED",
+        "sources": [
+          {
+            "id": "8984592459029345673",
+            "name": "\u6f2b\u756b160",
+            "language": "zh",
+            "homeUrl": "https://www.mh160mh.com"
+          }
+        ]
+      }
+    ]
+  }
+}
