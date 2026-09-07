@@ -1,0 +1,6 @@
+This repository is derived from Keiyoushi Extensions Source:
+https://github.com/keiyoushi/extensions-source
+
+The upstream project is licensed under the Apache License 2.0. Its DM5 source
+and unpacker library are included, and the repository publishing setup has been
+adapted to publish DM5 together with the new Manga 160 source.

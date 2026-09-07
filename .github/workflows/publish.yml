@@ -1,0 +1,129 @@
+name: Build and publish Mihon repository
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-mihon-repository
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Java
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Prepare signing key
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for value in SIGNING_KEY ALIAS KEY_STORE_PASSWORD KEY_PASSWORD; do
+            if [ -z "${!value}" ]; then
+              echo "Missing required GitHub Actions secret: $value" >&2
+              exit 1
+            fi
+          done
+          printf '%s' "$SIGNING_KEY" | base64 --decode > signingkey.jks
+
+      - name: Lint and build extensions
+        env:
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew \
+            :src:zh:manga160:lintRelease \
+            :src:zh:manga160:assembleRelease \
+            :src:zh:dm5:lintRelease \
+            :src:zh:dm5:assembleRelease
+
+      - name: Prepare release metadata
+        id: outputs
+        env:
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+        run: |
+          test -f src/zh/manga160/build/keiyoushi-source-info.json
+          test -f src/zh/dm5/build/keiyoushi-source-info.json
+          fingerprint=$(keytool -exportcert -keystore signingkey.jks -alias "$ALIAS" -storepass "$KEY_STORE_PASSWORD" | sha256sum | cut -d' ' -f1)
+          tag="build-${GITHUB_SHA::7}"
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.outputs.outputs.tag }}
+        run: |
+          mapfile -t assets < <(
+            find \
+              src/zh/manga160/build/outputs/apk/release \
+              src/zh/manga160/build/outputs/jar/release \
+              src/zh/dm5/build/outputs/apk/release \
+              src/zh/dm5/build/outputs/jar/release \
+              -type f \( -name '*.apk' -o -name '*.jar' \) | sort
+          )
+          test "${#assets[@]}" -eq 4
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --title "Mihon extensions $TAG" --notes "Automated extension build from $GITHUB_SHA"
+          fi
+
+      - name: Generate repository index
+        env:
+          TAG: ${{ steps.outputs.outputs.tag }}
+          FINGERPRINT: ${{ steps.outputs.outputs.fingerprint }}
+        run: |
+          python -m pip install 'protobuf==7.35.1'
+          output="$RUNNER_TEMP/mihon-repo-output"
+          python .github/scripts/publish_repo.py \
+            --repository "$GITHUB_REPOSITORY" \
+            --tag "$TAG" \
+            --source-info src/zh/manga160/build/keiyoushi-source-info.json \
+            --source-info src/zh/dm5/build/keiyoushi-source-info.json \
+            --signing-fingerprint "$FINGERPRINT" \
+            --output "$output"
+          python .github/scripts/verify_repo.py "$output" --expected-extensions 2
+
+      - name: Update repo branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          publish_dir="$RUNNER_TEMP/mihon-repo-branch"
+          output_dir="$RUNNER_TEMP/mihon-repo-output"
+          mkdir -p "$publish_dir"
+          git -C "$publish_dir" init -b repo
+          git -C "$publish_dir" remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git -C "$publish_dir" fetch --depth=1 origin repo; then
+            git -C "$publish_dir" checkout -B repo FETCH_HEAD
+          fi
+          cp "$output_dir/index.pb" "$output_dir/index.json" "$output_dir/repo.json" "$output_dir/index.html" "$output_dir/README.md" "$publish_dir/"
+          git -C "$publish_dir" add index.pb index.json repo.json index.html README.md
+          git -C "$publish_dir" config user.name github-actions[bot]
+          git -C "$publish_dir" config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if [ -n "$(git -C "$publish_dir" status --porcelain)" ]; then
+            git -C "$publish_dir" commit -m "Publish Mihon extensions $GITHUB_SHA"
+            git -C "$publish_dir" push origin HEAD:repo
+          fi
