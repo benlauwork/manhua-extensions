@@ -24,13 +24,19 @@ import java.net.URLEncoder
 @Source
 abstract class LaiManhua : KeiSource() {
 
-    // Mobile requests are redirected to a page that omits the image data.
     override fun Headers.Builder.configureHeaders() = removeAll("Origin")
-        .set("User-Agent", DESKTOP_USER_AGENT)
+
+    // Keep desktop-only parsing requests separate from the mobile WebView. The site redirects
+    // mobile browsers to a different host whose chapter pages omit the image data.
+    private val desktopHeaders by lazy {
+        headers.newBuilder()
+            .set("User-Agent", DESKTOP_USER_AGENT)
+            .build()
+    }
 
     override suspend fun getPopularManga(page: Int): MangasPage {
         if (page > 1) return emptyMangaPage()
-        val document = client.get("$baseUrl/kanmanhua/zaixian_hit.html").asJsoup()
+        val document = getDesktopDocument("$baseUrl/kanmanhua/zaixian_hit.html")
         val mangas = document.select("a.vtip[href][i]")
             .mapNotNull(::mangaFromListAnchor)
             .distinctBy { it.url }
@@ -39,7 +45,7 @@ abstract class LaiManhua : KeiSource() {
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         if (page > 1) return emptyMangaPage()
-        val document = client.get("$baseUrl/kanmanhua/zaixian_recent.html").asJsoup()
+        val document = getDesktopDocument("$baseUrl/kanmanhua/zaixian_recent.html")
         val mangas = document.select("a.video[href][i]")
             .mapNotNull(::mangaFromListAnchor)
             .distinctBy { it.url }
@@ -54,7 +60,7 @@ abstract class LaiManhua : KeiSource() {
         @Suppress("DEPRECATION")
         val encodedQuery = URLEncoder.encode(query, "GBK")
         val body = "key=$encodedQuery".toRequestBody(FORM_MEDIA_TYPE)
-        val document = client.post("$baseUrl/s81/search/", headers, body).asJsoup()
+        val document = client.post("$baseUrl/s81/search/", desktopHeaders, body).asJsoup()
         val mangas = document.select(".dmList > ul > li").mapNotNull(::mangaFromSearchElement)
         return MangasPage(mangas, false)
     }
@@ -104,7 +110,7 @@ abstract class LaiManhua : KeiSource() {
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
-        val document = client.get(baseUrl + manga.url).asJsoup()
+        val document = getDesktopDocument(baseUrl + manga.url)
         val updatedManga = if (fetchDetails) parseMangaDetails(manga, document) else manga
         val updatedChapters = if (fetchChapters) parseChapterList(document) else chapters
         return SMangaUpdate(updatedManga, updatedChapters)
@@ -145,10 +151,7 @@ abstract class LaiManhua : KeiSource() {
         .distinctBy { it.url }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val chapterUrl = (baseUrl + chapter.url).toHttpUrl().newBuilder()
-            .addQueryParameter("_desktop", "1")
-            .build()
-        val document = client.get(chapterUrl).asJsoup()
+        val document = getDesktopDocument(baseUrl + chapter.url)
         val scripts = document.select("script").joinToString("\n") { it.data() }
         val pageData = PAGE_DATA_REGEX.find(scripts)?.groupValues?.get(1)
             ?.takeIf { it.isNotBlank() }
@@ -184,6 +187,13 @@ abstract class LaiManhua : KeiSource() {
     }
 
     private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
+
+    private suspend fun getDesktopDocument(url: String): Document {
+        val desktopUrl = url.toHttpUrl().newBuilder()
+            .setQueryParameter("_desktop", "1")
+            .build()
+        return client.get(desktopUrl, desktopHeaders).asJsoup()
+    }
 
     companion object {
         private const val PAGE_SEPARATOR = "\$qingtiandy\$"
