@@ -66,7 +66,15 @@ abstract class Dm5 :
         return MangasPage(mangas, hasNextPage)
     }
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request = GET("$baseUrl/search?title=$query&language=1&page=$page", headers)
+    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+        val url = baseUrl.toHttpUrl().newBuilder()
+            .addPathSegment("search")
+            .addQueryParameter("title", query)
+            .addQueryParameter("language", "1")
+            .addQueryParameter("page", page.toString())
+            .build()
+        return GET(url.toString(), headers)
+    }
 
     override fun searchMangaParse(response: Response): MangasPage {
         val document = response.asJsoup()
