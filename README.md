@@ -8,3 +8,9 @@
 ```text
 https://raw.githubusercontent.com/benlauwork/manhua-extensions/repo/index.pb
 ```
+
+Tachimanga 請使用：
+
+```text
+https://raw.githubusercontent.com/benlauwork/manhua-extensions/repo/index.min.json
+```
