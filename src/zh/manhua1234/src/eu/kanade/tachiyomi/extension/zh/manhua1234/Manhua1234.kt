@@ -13,6 +13,7 @@ import keiyoushi.utils.asJsoup
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
@@ -215,6 +216,12 @@ abstract class Manhua1234 : KeiSource() {
                 Page(index, imageUrl = imageUrl)
             }
     }
+
+    override fun imageRequest(page: Page): Request = Request.Builder()
+        .url(page.imageUrl!!)
+        .headers(desktopHeaders)
+        .get()
+        .build()
 
     private suspend fun getDesktopDocument(url: String): Document = getDesktopDocument(url.toHttpUrl())
 
