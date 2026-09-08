@@ -23,18 +23,26 @@ abstract class Manga160 : KeiSource() {
     // The site redirects requests carrying an Origin header to its incomplete mobile host.
     override fun Headers.Builder.configureHeaders() = removeAll("Origin")
 
+    // Keep desktop-only parsing requests separate from the mobile WebView. The site redirects
+    // mobile browsers to a different host whose catalog uses incompatible markup.
+    private val desktopHeaders by lazy {
+        headers.newBuilder()
+            .set("User-Agent", DESKTOP_USER_AGENT)
+            .build()
+    }
+
     override suspend fun getPopularManga(page: Int): MangasPage {
         val pageUrl = if (page == 1) {
             "$baseUrl/kanmanhua/allhit/"
         } else {
             "$baseUrl/kanmanhua/allhit/$page.html"
         }
-        return parseMangaList(client.get(pageUrl).asJsoup())
+        return parseMangaList(getDesktopDocument(pageUrl))
     }
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         if (page > 1) return MangasPage(emptyList(), false)
-        return parseMangaList(client.get("$baseUrl/kanmanhua/zaixian_recent.html").asJsoup())
+        return parseMangaList(getDesktopDocument("$baseUrl/kanmanhua/zaixian_recent.html"))
     }
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
@@ -44,7 +52,7 @@ abstract class Manga160 : KeiSource() {
             .addQueryParameter("key", query)
             .addQueryParameter("page", page.toString())
             .build()
-        return parseMangaList(client.get(url).asJsoup())
+        return parseMangaList(getDesktopDocument(url))
     }
 
     private fun parseMangaList(document: Document): MangasPage {
@@ -83,7 +91,7 @@ abstract class Manga160 : KeiSource() {
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
-        val document = client.get(baseUrl + manga.url).asJsoup()
+        val document = getDesktopDocument(baseUrl + manga.url)
         val updatedManga = if (fetchDetails) parseMangaDetails(manga, document) else manga
         val updatedChapters = if (fetchChapters) parseChapterList(document) else chapters
         return SMangaUpdate(updatedManga, updatedChapters)
@@ -123,7 +131,7 @@ abstract class Manga160 : KeiSource() {
         .distinctBy { it.url }
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val document = client.get(baseUrl + chapter.url).asJsoup()
+        val document = getDesktopDocument(baseUrl + chapter.url)
         val script = document.selectFirst("script:containsData(qTcms_S_m_murl_e)")?.data()
             ?: return emptyList()
         val encoded = PAGE_DATA_REGEX.find(script)?.groupValues?.get(1)
@@ -180,11 +188,23 @@ abstract class Manga160 : KeiSource() {
 
     private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
 
+    private suspend fun getDesktopDocument(url: String): Document = getDesktopDocument(url.toHttpUrl())
+
+    private suspend fun getDesktopDocument(url: HttpUrl): Document {
+        val desktopUrl = url.newBuilder()
+            .setQueryParameter("_desktop", "1")
+            .build()
+        return client.get(desktopUrl, desktopHeaders).asJsoup()
+    }
+
     companion object {
         private const val PAGE_SEPARATOR = "\$qingtiandy\$"
         private const val LEGACY_CHAPTER_ID_LIMIT = 542724L
         private const val IMAGE_HOST = "https://mhpicwt.tgmhfc.uk"
         private const val LEGACY_IMAGE_HOST = "https://mhpic6.tgmhfc.uk"
+        private const val DESKTOP_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
 
         private val PAGE_DATA_REGEX = Regex("""var qTcms_S_m_murl_e="([^"]*)"""")
         private val CHAPTER_ID_REGEX = Regex("""var qTcms_S_p_id="(\d+)"""")
