@@ -58,7 +58,9 @@ jobs:
             :src:zh:dm5:lintRelease \
             :src:zh:dm5:assembleRelease \
             :src:zh:laimanhua:lintRelease \
-            :src:zh:laimanhua:assembleRelease
+            :src:zh:laimanhua:assembleRelease \
+            :src:zh:manhua1234:lintRelease \
+            :src:zh:manhua1234:assembleRelease
 
       - name: Prepare release metadata
         id: outputs
@@ -69,6 +71,7 @@ jobs:
           test -f src/zh/manga160/build/keiyoushi-source-info.json
           test -f src/zh/dm5/build/keiyoushi-source-info.json
           test -f src/zh/laimanhua/build/keiyoushi-source-info.json
+          test -f src/zh/manhua1234/build/keiyoushi-source-info.json
           fingerprint=$(keytool -exportcert -keystore signingkey.jks -alias "$ALIAS" -storepass "$KEY_STORE_PASSWORD" | sha256sum | cut -d' ' -f1)
           tag="build-${GITHUB_SHA::7}"
           echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
@@ -87,9 +90,11 @@ jobs:
               src/zh/dm5/build/outputs/jar/release \
               src/zh/laimanhua/build/outputs/apk/release \
               src/zh/laimanhua/build/outputs/jar/release \
+              src/zh/manhua1234/build/outputs/apk/release \
+              src/zh/manhua1234/build/outputs/jar/release \
               -type f \( -name '*.apk' -o -name '*.jar' \) | sort
           )
-          test "${#assets[@]}" -eq 6
+          test "${#assets[@]}" -eq 8
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
           else
@@ -109,9 +114,10 @@ jobs:
             --source-info src/zh/manga160/build/keiyoushi-source-info.json \
             --source-info src/zh/dm5/build/keiyoushi-source-info.json \
             --source-info src/zh/laimanhua/build/keiyoushi-source-info.json \
+            --source-info src/zh/manhua1234/build/keiyoushi-source-info.json \
             --signing-fingerprint "$FINGERPRINT" \
             --output "$output"
-          python .github/scripts/verify_repo.py "$output" --expected-extensions 3
+          python .github/scripts/verify_repo.py "$output" --expected-extensions 4
 
       - name: Update repo branch
         env:
