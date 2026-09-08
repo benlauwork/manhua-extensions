@@ -1,6 +1,6 @@
 {
   "name": "Manhua Extensions",
-  "badgeLabel": "3 sources",
+  "badgeLabel": "4 sources",
   "signingKey": "6d49d56311e9d842166ea1fde30cd10740ed941fbbf343fc6a9efab60f391f09",
   "contact": {
     "website": "https://github.com/benlauwork/manhua-extensions"
@@ -11,9 +11,9 @@
         "name": "Dm5",
         "packageName": "eu.kanade.tachiyomi.extension.zh.dm5",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-e67d25d/tachiyomi-zh.dm5-v1.4.13.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.dm5-v1.4.13.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/dm5/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-e67d25d/tachiyomi-zh.dm5-v1.4.13.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.dm5-v1.4.13.jar"
         },
         "extensionLib": "1.4",
         "versionCode": "104013",
@@ -36,9 +36,9 @@
         "name": "Lai Manhua",
         "packageName": "eu.kanade.tachiyomi.extension.zh.laimanhua",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-e67d25d/tachiyomi-zh.laimanhua-v1.6.3.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.laimanhua-v1.6.3.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/laimanhua/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-e67d25d/tachiyomi-zh.laimanhua-v1.6.3.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.laimanhua-v1.6.3.jar"
         },
         "extensionLib": "1.6",
         "versionCode": "106003",
@@ -57,9 +57,9 @@
         "name": "Manga 160",
         "packageName": "eu.kanade.tachiyomi.extension.zh.manga160",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-e67d25d/tachiyomi-zh.manga160-v1.6.4.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.manga160-v1.6.4.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/manga160/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-e67d25d/tachiyomi-zh.manga160-v1.6.4.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.manga160-v1.6.4.jar"
         },
         "extensionLib": "1.6",
         "versionCode": "106004",
@@ -71,6 +71,27 @@
             "name": "\u6f2b\u756b160",
             "language": "zh",
             "homeUrl": "https://www.mh160mh.com"
+          }
+        ]
+      },
+      {
+        "name": "Manhua 1234",
+        "packageName": "eu.kanade.tachiyomi.extension.zh.manhua1234",
+        "resources": {
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.manhua1234-v1.6.1.apk",
+          "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/manhua1234/res/mipmap-xhdpi/ic_launcher.png",
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d1f0d5a/tachiyomi-zh.manhua1234-v1.6.1.jar"
+        },
+        "extensionLib": "1.6",
+        "versionCode": "106001",
+        "versionName": "1.6.1",
+        "contentWarning": "CONTENT_WARNING_MIXED",
+        "sources": [
+          {
+            "id": "3019920599583877094",
+            "name": "\u6f2b\u756b1234",
+            "language": "zh",
+            "homeUrl": "https://www.wmh1234.com"
           }
         ]
       }
