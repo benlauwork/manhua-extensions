@@ -183,8 +183,7 @@ abstract class Manhua1234 : KeiSource() {
         }
     }
 
-    private fun Document.metaContent(property: String): String? =
-        selectFirst("meta[property=$property]")?.attr("content")?.takeIf { it.isNotBlank() }
+    private fun Document.metaContent(property: String): String? = selectFirst("meta[property=$property]")?.attr("content")?.takeIf { it.isNotBlank() }
 
     private fun parseChapterList(document: Document): List<SChapter> = document.select(".mint-chapters a[href^=/go/]")
         .mapNotNull { anchor ->
