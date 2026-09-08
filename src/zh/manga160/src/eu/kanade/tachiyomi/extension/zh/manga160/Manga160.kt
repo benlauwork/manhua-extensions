@@ -106,9 +106,10 @@ abstract class Manga160 : KeiSource() {
         artist = author
         genre = document.selectFirst("meta[property=og:novel:category]")?.attr("content")
             ?.takeIf { it.isNotBlank() }
-        description = document.selectFirst("#workint")?.text()
-            ?.takeIf { it.isNotBlank() && it != "..." && it != "......" }
-            ?: document.selectFirst("meta[property=og:description]")?.attr("content")
+        description = document.selectFirst("#workint")?.text().meaningfulDescription()
+            ?: document.selectFirst("meta[property=og:description]")?.attr("content").meaningfulDescription()
+            ?: manga.description.meaningfulDescription()
+            ?: document.selectFirst("meta[name=description]")?.attr("content").meaningfulDescription()
         status = when (
             document.selectFirst("meta[property=og:novel:status]")?.attr("content")?.lowercase()
         ) {
@@ -187,6 +188,9 @@ abstract class Manga160 : KeiSource() {
     }
 
     private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
+
+    private fun String?.meaningfulDescription(): String? = this?.trim()
+        ?.takeIf { value -> value.isNotEmpty() && value.any { it != '.' && it != '…' } }
 
     private suspend fun getDesktopDocument(url: String): Document = getDesktopDocument(url.toHttpUrl())
 
