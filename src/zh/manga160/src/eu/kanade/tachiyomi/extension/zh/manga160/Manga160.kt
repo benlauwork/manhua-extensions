@@ -14,8 +14,11 @@ import keiyoushi.utils.asJsoup
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.io.IOException
 
 @Source
 abstract class Manga160 : KeiSource() {
@@ -29,6 +32,38 @@ abstract class Manga160 : KeiSource() {
         headers.newBuilder()
             .set("User-Agent", DESKTOP_USER_AGENT)
             .build()
+    }
+
+    // The site rotates modern chapter images across several CDN hosts. Retry another host when
+    // the selected endpoint is unavailable instead of leaving the whole chapter blank.
+    override fun OkHttpClient.Builder.configureClient() = addInterceptor { chain ->
+        val originalRequest = chain.request()
+        if (originalRequest.url.host !in MODERN_IMAGE_HOSTS) {
+            return@addInterceptor chain.proceed(originalRequest)
+        }
+
+        val hosts = listOf(originalRequest.url.host) + MODERN_IMAGE_HOSTS.filterNot {
+            it == originalRequest.url.host
+        }
+        var lastException: IOException? = null
+
+        hosts.forEachIndexed { index, host ->
+            val request = originalRequest.newBuilder()
+                .url(originalRequest.url.newBuilder().host(host).build())
+                .build()
+            try {
+                val response = chain.proceed(request)
+                if (response.isSuccessful || index == hosts.lastIndex) {
+                    return@addInterceptor response
+                }
+                response.close()
+            } catch (exception: IOException) {
+                lastException = exception
+                if (index == hosts.lastIndex) throw exception
+            }
+        }
+
+        throw lastException ?: IOException("No Manga 160 image host was available")
     }
 
     override suspend fun getPopularManga(page: Int): MangasPage {
@@ -187,6 +222,12 @@ abstract class Manga160 : KeiSource() {
         else -> null
     }
 
+    override fun imageRequest(page: Page): Request = Request.Builder()
+        .url(page.imageUrl!!)
+        .headers(desktopHeaders)
+        .get()
+        .build()
+
     private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
 
     private fun String?.meaningfulDescription(): String? = this?.trim()
@@ -204,7 +245,7 @@ abstract class Manga160 : KeiSource() {
     companion object {
         private const val PAGE_SEPARATOR = "\$qingtiandy\$"
         private const val LEGACY_CHAPTER_ID_LIMIT = 542724L
-        private const val IMAGE_HOST = "https://mhpicwt.tgmhfc.uk"
+        private const val IMAGE_HOST = "https://mhpic789-5.tgmhfc.uk"
         private const val LEGACY_IMAGE_HOST = "https://mhpic6.tgmhfc.uk"
         private const val DESKTOP_USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
@@ -215,5 +256,12 @@ abstract class Manga160 : KeiSource() {
         private val MANGA_ID_REGEX = Regex("""var qTcms_S_m_id="(\d+)"""")
         private val PROXY_MODE_REGEX = Regex("""var qTcms_Pic_m_if="([^"]*)"""")
         private val MHTTP_REGEX = Regex("""var qTcms_S_m_mhttpurl="([^"]*)"""")
+        private val MODERN_IMAGE_HOSTS = listOf(
+            "mhpic789-5.tgmhfc.uk",
+            "mhpic5er.tgmhfc.uk",
+            "mhpic7fr.tgmhfc.uk",
+            "mhpicwt.tgmhfc.uk",
+            "mhpicwx.tgmhfc.uk",
+        )
     }
 }
