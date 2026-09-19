@@ -26,14 +26,6 @@ abstract class Manga160 : KeiSource() {
     // The site redirects requests carrying an Origin header to its incomplete mobile host.
     override fun Headers.Builder.configureHeaders() = removeAll("Origin")
 
-    // Keep desktop-only parsing requests separate from the mobile WebView. The site redirects
-    // mobile browsers to a different host whose catalog uses incompatible markup.
-    private val desktopHeaders by lazy {
-        headers.newBuilder()
-            .set("User-Agent", DESKTOP_USER_AGENT)
-            .build()
-    }
-
     // The site rotates modern chapter images across several CDN hosts. Retry another host when
     // the selected endpoint is unavailable instead of leaving the whole chapter blank.
     override fun OkHttpClient.Builder.configureClient() = addInterceptor { chain ->
@@ -108,7 +100,7 @@ abstract class Manga160 : KeiSource() {
     }
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
-        if (url.host != baseUrl.toHttpUrl().host) return null
+        if (url.host !in SUPPORTED_HOSTS) return null
         if (url.pathSegments.firstOrNull() != "kanmanhua") return null
         val slug = url.pathSegments.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return null
 
@@ -224,7 +216,7 @@ abstract class Manga160 : KeiSource() {
 
     override fun imageRequest(page: Page): Request = Request.Builder()
         .url(page.imageUrl!!)
-        .headers(desktopHeaders)
+        .headers(headers)
         .get()
         .build()
 
@@ -239,7 +231,7 @@ abstract class Manga160 : KeiSource() {
         val desktopUrl = url.newBuilder()
             .setQueryParameter("_desktop", "1")
             .build()
-        return client.get(desktopUrl, desktopHeaders).asJsoup()
+        return client.get(desktopUrl, headers).asJsoup()
     }
 
     companion object {
@@ -247,15 +239,13 @@ abstract class Manga160 : KeiSource() {
         private const val LEGACY_CHAPTER_ID_LIMIT = 542724L
         private const val IMAGE_HOST = "https://mhpic789-5.tgmhfc.uk"
         private const val LEGACY_IMAGE_HOST = "https://mhpic6.tgmhfc.uk"
-        private const val DESKTOP_USER_AGENT =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
 
         private val PAGE_DATA_REGEX = Regex("""var qTcms_S_m_murl_e="([^"]*)"""")
         private val CHAPTER_ID_REGEX = Regex("""var qTcms_S_p_id="(\d+)"""")
         private val MANGA_ID_REGEX = Regex("""var qTcms_S_m_id="(\d+)"""")
         private val PROXY_MODE_REGEX = Regex("""var qTcms_Pic_m_if="([^"]*)"""")
         private val MHTTP_REGEX = Regex("""var qTcms_S_m_mhttpurl="([^"]*)"""")
+        private val SUPPORTED_HOSTS = setOf("www.mh160mh.com", "m.mh160mh.com")
         private val MODERN_IMAGE_HOSTS = listOf(
             "mhpic789-5.tgmhfc.uk",
             "mhpic5er.tgmhfc.uk",

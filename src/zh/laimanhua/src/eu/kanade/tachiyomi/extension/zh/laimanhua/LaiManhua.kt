@@ -9,29 +9,52 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
 import keiyoushi.network.get
-import keiyoushi.network.post
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
-import java.net.URLEncoder
+import java.io.IOException
 
 @Source
 abstract class LaiManhua : KeiSource() {
 
     override fun Headers.Builder.configureHeaders() = removeAll("Origin")
 
-    // Keep desktop-only parsing requests separate from the mobile WebView. The site redirects
-    // mobile browsers to a different host whose chapter pages omit the image data.
-    private val desktopHeaders by lazy {
-        headers.newBuilder()
-            .set("User-Agent", DESKTOP_USER_AGENT)
-            .build()
+    // The image network rotates files across several CDN hosts. Retry another host when the
+    // selected endpoint is unavailable instead of leaving the whole chapter blank.
+    override fun OkHttpClient.Builder.configureClient() = addInterceptor { chain ->
+        val originalRequest = chain.request()
+        if (originalRequest.url.host !in MODERN_IMAGE_HOSTS) {
+            return@addInterceptor chain.proceed(originalRequest)
+        }
+
+        val hosts = listOf(originalRequest.url.host) + MODERN_IMAGE_HOSTS.filterNot {
+            it == originalRequest.url.host
+        }
+        var lastException: IOException? = null
+
+        hosts.forEachIndexed { index, host ->
+            val request = originalRequest.newBuilder()
+                .url(originalRequest.url.newBuilder().host(host).build())
+                .build()
+            try {
+                val response = chain.proceed(request)
+                if (response.isSuccessful || index == hosts.lastIndex) {
+                    return@addInterceptor response
+                }
+                response.close()
+            } catch (exception: IOException) {
+                lastException = exception
+                if (index == hosts.lastIndex) throw exception
+            }
+        }
+
+        throw lastException ?: IOException("No Lai Manhua image host was available")
     }
 
     override suspend fun getPopularManga(page: Int): MangasPage {
@@ -54,15 +77,18 @@ abstract class LaiManhua : KeiSource() {
 
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
         if (query.isBlank()) return getPopularManga(page)
-        if (page > 1) return emptyMangaPage()
 
-        // The site's form and search backend use GBK rather than UTF-8.
-        @Suppress("DEPRECATION")
-        val encodedQuery = URLEncoder.encode(query, "GBK")
-        val body = "key=$encodedQuery".toRequestBody(FORM_MEDIA_TYPE)
-        val document = client.post("$baseUrl/s81/search/", desktopHeaders, body).asJsoup()
-        val mangas = document.select(".dmList > ul > li").mapNotNull(::mangaFromSearchElement)
-        return MangasPage(mangas, false)
+        // Lai Manhua's legacy search endpoint is now protected by a Cloudflare challenge.
+        // Its sister site exposes the same catalogue and stable relative manga URLs.
+        val url = "$SEARCH_BASE_URL/statics/searchelxt1e1.aspx".toHttpUrl().newBuilder()
+            .addQueryParameter("key", query)
+            .addQueryParameter("page", page.toString())
+            .build()
+        val document = getDesktopDocument(url)
+        val mangas = document.select("ul.mh-search-list > li")
+            .mapNotNull(::mangaFromSearchElement)
+        val hasNextPage = document.selectFirst("a:matchesOwn(^下一页$)") != null
+        return MangasPage(mangas, hasNextPage)
     }
 
     private fun emptyMangaPage() = MangasPage(emptyList(), false)
@@ -80,19 +106,18 @@ abstract class LaiManhua : KeiSource() {
     }
 
     private fun mangaFromSearchElement(element: Element): SManga? {
-        val anchor = element.selectFirst("dl > dt > a[href]") ?: return null
-        val title = anchor.attr("title").ifBlank { anchor.text() }
-            .takeIf { it.isNotBlank() } ?: return null
+        val anchor = element.selectFirst(".mh-works-title h4 > a[href]") ?: return null
+        val title = anchor.text().takeIf { it.isNotBlank() } ?: return null
 
         return SManga.create().apply {
             this.title = title
-            thumbnail_url = element.selectFirst("p.cover img")?.absUrl("src")
+            thumbnail_url = element.selectFirst(".mh-nlook-w img")?.absUrl("src")
             setUrlWithoutDomain(anchor.absUrl("href"))
         }
     }
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
-        if (url.host != baseUrl.toHttpUrl().host) return null
+        if (url.host !in SUPPORTED_HOSTS) return null
         if (url.pathSegments.firstOrNull() != "kanmanhua") return null
         val slug = url.pathSegments.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return null
 
@@ -186,13 +211,21 @@ abstract class LaiManhua : KeiSource() {
         else -> null
     }
 
+    override fun imageRequest(page: Page): Request = Request.Builder()
+        .url(page.imageUrl!!)
+        .headers(headers)
+        .get()
+        .build()
+
     private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
 
-    private suspend fun getDesktopDocument(url: String): Document {
-        val desktopUrl = url.toHttpUrl().newBuilder()
+    private suspend fun getDesktopDocument(url: String): Document = getDesktopDocument(url.toHttpUrl())
+
+    private suspend fun getDesktopDocument(url: HttpUrl): Document {
+        val desktopUrl = url.newBuilder()
             .setQueryParameter("_desktop", "1")
             .build()
-        return client.get(desktopUrl, desktopHeaders).asJsoup()
+        return client.get(desktopUrl, headers).asJsoup()
     }
 
     companion object {
@@ -200,12 +233,18 @@ abstract class LaiManhua : KeiSource() {
         private const val LEGACY_CHAPTER_ID_LIMIT = 542724L
         private const val IMAGE_HOST = "https://mhpicwwt.tgmhfc.uk"
         private const val LEGACY_IMAGE_HOST = "https://mhpic6.tgmhfc.uk"
-        private const val DESKTOP_USER_AGENT =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+        private const val SEARCH_BASE_URL = "https://www.mh160mh.com"
 
-        private val FORM_MEDIA_TYPE = "application/x-www-form-urlencoded".toMediaType()
         private val PAGE_DATA_REGEX = Regex("""var\s+picTree\s*=\s*['"]([^'"]*)""")
         private val CHAPTER_ID_REGEX = Regex("""var\s+currentChapterid\s*=\s*['"](\d+)""")
+        private val SUPPORTED_HOSTS = setOf("www.laimanhua88.com", "m.laimanhua88.com")
+        private val MODERN_IMAGE_HOSTS = listOf(
+            "mhpicwwt.tgmhfc.uk",
+            "mhpic789-5.tgmhfc.uk",
+            "mhpic5er.tgmhfc.uk",
+            "mhpic7fr.tgmhfc.uk",
+            "mhpicwt.tgmhfc.uk",
+            "mhpicwx.tgmhfc.uk",
+        )
     }
 }
