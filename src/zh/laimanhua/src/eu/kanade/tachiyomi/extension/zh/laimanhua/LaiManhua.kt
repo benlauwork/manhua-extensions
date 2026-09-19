@@ -155,8 +155,7 @@ abstract class LaiManhua : HttpSource() {
         }
     }
 
-    private fun Document.metaContent(property: String): String? =
-        selectFirst("meta[property=$property]")?.attr("content")?.takeIf { it.isNotBlank() }
+    private fun Document.metaContent(property: String): String? = selectFirst("meta[property=$property]")?.attr("content")?.takeIf { it.isNotBlank() }
 
     override fun chapterListRequest(manga: SManga): Request = mobileRequest(manga.url)
 
