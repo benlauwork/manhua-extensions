@@ -222,6 +222,9 @@ abstract class Manga160 : HttpSource() {
 
     override fun imageRequest(page: Page): Request = GET(page.imageUrl!!, headers)
 
+    // Manga 160 pages already expose final image URLs, so this legacy callback is not used.
+    override fun imageUrlParse(response: Response): String = response.request.url.toString()
+
     private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
 
     private fun String?.meaningfulDescription(): String? = this?.trim()
