@@ -31,6 +31,13 @@ abstract class Manga160 : HttpSource() {
         .removeAll("Origin")
         .set("Referer", "$baseUrl/")
 
+    private val mobileHeaders by lazy {
+        headers.newBuilder()
+            .set("User-Agent", MOBILE_USER_AGENT)
+            .set("Referer", "$MOBILE_BASE_URL/")
+            .build()
+    }
+
     // The site rotates modern chapter images across several CDN hosts. Retry another host when
     // the selected endpoint is unavailable instead of leaving the whole chapter blank.
     override val client: OkHttpClient = network.client.newBuilder()
@@ -109,7 +116,7 @@ abstract class Manga160 : HttpSource() {
         }
     }
 
-    override fun mangaDetailsRequest(manga: SManga): Request = desktopRequest(baseUrl + manga.url)
+    override fun mangaDetailsRequest(manga: SManga): Request = mobileRequest(manga.url)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val document = response.asJsoup()
@@ -138,11 +145,15 @@ abstract class Manga160 : HttpSource() {
         }
     }
 
-    override fun chapterListRequest(manga: SManga): Request = desktopRequest(baseUrl + manga.url)
+    override fun chapterListRequest(manga: SManga): Request = mobileRequest(manga.url)
 
     override fun chapterListParse(response: Response): List<SChapter> {
         val document = response.asJsoup()
-        val chapters = document.select(".cy_plist ul > li > a[href], .cy_plist a[href$=.html]")
+        val chapters = document.select(
+            "#chapterList_ul_1 > li > a[href], " +
+                ".cy_plist ul > li > a[href], " +
+                ".cy_plist a[href$=.html]",
+        )
             .mapNotNull { anchor ->
                 val name = anchor.selectFirst("p")?.text()
                     ?.takeIf { it.isNotBlank() }
@@ -162,7 +173,7 @@ abstract class Manga160 : HttpSource() {
         return chapters
     }
 
-    override fun pageListRequest(chapter: SChapter): Request = desktopRequest(baseUrl + chapter.url)
+    override fun pageListRequest(chapter: SChapter): Request = mobileRequest(chapter.url)
 
     override fun pageListParse(response: Response): List<Page> {
         val document = response.asJsoup()
@@ -220,7 +231,7 @@ abstract class Manga160 : HttpSource() {
         else -> null
     }
 
-    override fun imageRequest(page: Page): Request = GET(page.imageUrl!!, headers)
+    override fun imageRequest(page: Page): Request = GET(page.imageUrl!!, mobileHeaders)
 
     // Manga 160 pages already expose final image URLs, so this legacy callback is not used.
     override fun imageUrlParse(response: Response): String = response.request.url.toString()
@@ -239,11 +250,27 @@ abstract class Manga160 : HttpSource() {
         return GET(desktopUrl, headers)
     }
 
+    private fun mobileRequest(path: String): Request {
+        val url = if (path.startsWith("http://") || path.startsWith("https://")) {
+            path.toHttpUrl().newBuilder()
+                .scheme("https")
+                .host(MOBILE_BASE_URL.toHttpUrl().host)
+                .build()
+        } else {
+            (MOBILE_BASE_URL + path).toHttpUrl()
+        }
+        return GET(url, mobileHeaders)
+    }
+
     companion object {
         private const val PAGE_SEPARATOR = "\$qingtiandy\$"
         private const val LEGACY_CHAPTER_ID_LIMIT = 542724L
         private const val IMAGE_HOST = "https://mhpic789-5.tgmhfc.uk"
         private const val LEGACY_IMAGE_HOST = "https://mhpic6.tgmhfc.uk"
+        private const val MOBILE_BASE_URL = "https://m.mh160mh.com"
+        private const val MOBILE_USER_AGENT =
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) " +
+                "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
 
         private val PAGE_DATA_REGEX = Regex("""var qTcms_S_m_murl_e="([^"]*)"""")
         private val CHAPTER_ID_REGEX = Regex("""var qTcms_S_p_id="(\d+)"""")
@@ -256,6 +283,7 @@ abstract class Manga160 : HttpSource() {
             "mhpic7fr.tgmhfc.uk",
             "mhpicwt.tgmhfc.uk",
             "mhpicwx.tgmhfc.uk",
+            "qwe123.tgmhfc.uk",
         )
     }
 }
