@@ -1,86 +1,96 @@
 package eu.kanade.tachiyomi.extension.zh.manga160
 
 import android.util.Base64
+import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.source.model.SMangaUpdate
+import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
-import keiyoushi.network.get
-import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import java.io.IOException
 
 @Source
-abstract class Manga160 : KeiSource() {
+abstract class Manga160 : HttpSource() {
 
-    // The site redirects requests carrying an Origin header to its incomplete mobile host.
-    override fun Headers.Builder.configureHeaders() = removeAll("Origin")
+    override val supportsLatest = true
+
+    // Tachimanga currently uses the Tachiyomi 1.4 source interface. Keep all network and parse
+    // callbacks on that interface so manga details and chapter lists reach the app correctly.
+    override fun headersBuilder(): Headers.Builder = super.headersBuilder()
+        .removeAll("Origin")
+        .set("Referer", "$baseUrl/")
 
     // The site rotates modern chapter images across several CDN hosts. Retry another host when
     // the selected endpoint is unavailable instead of leaving the whole chapter blank.
-    override fun OkHttpClient.Builder.configureClient() = addInterceptor { chain ->
-        val originalRequest = chain.request()
-        if (originalRequest.url.host !in MODERN_IMAGE_HOSTS) {
-            return@addInterceptor chain.proceed(originalRequest)
-        }
-
-        val hosts = listOf(originalRequest.url.host) + MODERN_IMAGE_HOSTS.filterNot {
-            it == originalRequest.url.host
-        }
-        var lastException: IOException? = null
-
-        hosts.forEachIndexed { index, host ->
-            val request = originalRequest.newBuilder()
-                .url(originalRequest.url.newBuilder().host(host).build())
-                .build()
-            try {
-                val response = chain.proceed(request)
-                if (response.isSuccessful || index == hosts.lastIndex) {
-                    return@addInterceptor response
-                }
-                response.close()
-            } catch (exception: IOException) {
-                lastException = exception
-                if (index == hosts.lastIndex) throw exception
+    override val client: OkHttpClient = network.client.newBuilder()
+        .addInterceptor { chain ->
+            val originalRequest = chain.request()
+            if (originalRequest.url.host !in MODERN_IMAGE_HOSTS) {
+                return@addInterceptor chain.proceed(originalRequest)
             }
+
+            val hosts = listOf(originalRequest.url.host) + MODERN_IMAGE_HOSTS.filterNot {
+                it == originalRequest.url.host
+            }
+            var lastException: IOException? = null
+
+            hosts.forEachIndexed { index, host ->
+                val request = originalRequest.newBuilder()
+                    .url(originalRequest.url.newBuilder().host(host).build())
+                    .build()
+                try {
+                    val response = chain.proceed(request)
+                    if (response.isSuccessful || index == hosts.lastIndex) {
+                        return@addInterceptor response
+                    }
+                    response.close()
+                } catch (exception: IOException) {
+                    lastException = exception
+                    if (index == hosts.lastIndex) throw exception
+                }
+            }
+
+            throw lastException ?: IOException("No Manga 160 image host was available")
         }
+        .build()
 
-        throw lastException ?: IOException("No Manga 160 image host was available")
-    }
-
-    override suspend fun getPopularManga(page: Int): MangasPage {
-        val pageUrl = if (page == 1) {
+    override fun popularMangaRequest(page: Int): Request {
+        val url = if (page == 1) {
             "$baseUrl/kanmanhua/allhit/"
         } else {
             "$baseUrl/kanmanhua/allhit/$page.html"
         }
-        return parseMangaList(getDesktopDocument(pageUrl))
+        return desktopRequest(url)
     }
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage {
-        if (page > 1) return MangasPage(emptyList(), false)
-        return parseMangaList(getDesktopDocument("$baseUrl/kanmanhua/zaixian_recent.html"))
-    }
+    override fun popularMangaParse(response: Response): MangasPage = parseMangaList(response.asJsoup())
 
-    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
-        if (query.isBlank()) return getPopularManga(page)
+    override fun latestUpdatesRequest(page: Int): Request = desktopRequest("$baseUrl/kanmanhua/zaixian_recent.html")
+
+    override fun latestUpdatesParse(response: Response): MangasPage = parseMangaList(response.asJsoup())
+
+    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+        if (query.isBlank()) return popularMangaRequest(page)
 
         val url = "$baseUrl/statics/searchelxt1e1.aspx".toHttpUrl().newBuilder()
             .addQueryParameter("key", query)
             .addQueryParameter("page", page.toString())
             .build()
-        return parseMangaList(getDesktopDocument(url))
+        return desktopRequest(url)
     }
+
+    override fun searchMangaParse(response: Response): MangasPage = parseMangaList(response.asJsoup())
 
     private fun parseMangaList(document: Document): MangasPage {
         val mangas = document.select("ul.mh-search-list > li").mapNotNull(::mangaFromElement)
@@ -99,67 +109,63 @@ abstract class Manga160 : KeiSource() {
         }
     }
 
-    override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
-        if (url.host !in SUPPORTED_HOSTS) return null
-        if (url.pathSegments.firstOrNull() != "kanmanhua") return null
-        val slug = url.pathSegments.getOrNull(1)?.takeIf { it.isNotBlank() } ?: return null
+    override fun mangaDetailsRequest(manga: SManga): Request = desktopRequest(baseUrl + manga.url)
 
-        return fetchMangaUpdate(
-            SManga.create().apply { this.url = "/kanmanhua/$slug/" },
-            emptyList(),
-            fetchDetails = true,
-            fetchChapters = true,
-        ).manga.apply { initialized = true }
-    }
-
-    override suspend fun fetchMangaUpdate(
-        manga: SManga,
-        chapters: List<SChapter>,
-        fetchDetails: Boolean,
-        fetchChapters: Boolean,
-    ): SMangaUpdate {
-        val document = getDesktopDocument(baseUrl + manga.url)
-        val updatedManga = if (fetchDetails) parseMangaDetails(manga, document) else manga
-        val updatedChapters = if (fetchChapters) parseChapterList(document) else chapters
-        return SMangaUpdate(updatedManga, updatedChapters)
-    }
-
-    private fun parseMangaDetails(manga: SManga, document: Document): SManga = SManga.create().apply {
-        url = manga.url
-        title = document.selectFirst(".mh-date-info-name h4 > a")?.text() ?: manga.title
-        thumbnail_url = document.selectFirst(".mh-date-bgpic img")?.absUrl("src") ?: manga.thumbnail_url
-        author = document.selectFirst("meta[property=og:novel:author]")?.attr("content")
-            ?.takeIf { it.isNotBlank() }
-        artist = author
-        genre = document.selectFirst("meta[property=og:novel:category]")?.attr("content")
-            ?.takeIf { it.isNotBlank() }
-        description = document.selectFirst("#workint")?.text().meaningfulDescription()
-            ?: document.selectFirst("meta[property=og:description]")?.attr("content").meaningfulDescription()
-            ?: manga.description.meaningfulDescription()
-            ?: document.selectFirst("meta[name=description]")?.attr("content").meaningfulDescription()
-        status = when (
-            document.selectFirst("meta[property=og:novel:status]")?.attr("content")?.lowercase()
-        ) {
-            "连载中", "連載中" -> SManga.ONGOING
-            "已完结", "已完結", "完结", "完結" -> SManga.COMPLETED
-            "休刊" -> SManga.ON_HIATUS
-            else -> SManga.UNKNOWN
-        }
-    }
-
-    private fun parseChapterList(document: Document): List<SChapter> = document.select(".cy_plist ul > li > a[href]")
-        .mapNotNull { anchor ->
-            val name = anchor.selectFirst("p")?.text()?.takeIf { it.isNotBlank() }
-                ?: return@mapNotNull null
-            SChapter.create().apply {
-                this.name = name
-                setUrlWithoutDomain(anchor.absUrl("href"))
+    override fun mangaDetailsParse(response: Response): SManga {
+        val document = response.asJsoup()
+        return SManga.create().apply {
+            title = document.selectFirst(".mh-date-info-name h4 > a")?.text()
+                ?: document.selectFirst("meta[property=og:title]")?.attr("content")
+                ?: ""
+            thumbnail_url = document.selectFirst(".mh-date-bgpic img")?.absUrl("src")
+                ?: document.selectFirst("meta[property=og:image]")?.attr("content")
+            author = document.selectFirst("meta[property=og:novel:author]")?.attr("content")
+                ?.takeIf { it.isNotBlank() }
+            artist = author
+            genre = document.selectFirst("meta[property=og:novel:category]")?.attr("content")
+                ?.takeIf { it.isNotBlank() }
+            description = document.selectFirst("#workint")?.text().meaningfulDescription()
+                ?: document.selectFirst("meta[property=og:description]")?.attr("content").meaningfulDescription()
+                ?: document.selectFirst("meta[name=description]")?.attr("content").meaningfulDescription()
+            status = when (
+                document.selectFirst("meta[property=og:novel:status]")?.attr("content")?.lowercase()
+            ) {
+                "连载中", "連載中" -> SManga.ONGOING
+                "已完结", "已完結", "完结", "完結" -> SManga.COMPLETED
+                "休刊" -> SManga.ON_HIATUS
+                else -> SManga.UNKNOWN
             }
         }
-        .distinctBy { it.url }
+    }
 
-    override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val document = getDesktopDocument(baseUrl + chapter.url)
+    override fun chapterListRequest(manga: SManga): Request = desktopRequest(baseUrl + manga.url)
+
+    override fun chapterListParse(response: Response): List<SChapter> {
+        val document = response.asJsoup()
+        val chapters = document.select(".cy_plist ul > li > a[href], .cy_plist a[href$=.html]")
+            .mapNotNull { anchor ->
+                val name = anchor.selectFirst("p")?.text()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: anchor.attr("title").takeIf { it.isNotBlank() }
+                    ?: anchor.ownText().takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+                SChapter.create().apply {
+                    this.name = name
+                    setUrlWithoutDomain(anchor.absUrl("href"))
+                }
+            }
+            .distinctBy { it.url }
+
+        if (chapters.isEmpty()) {
+            throw Exception("漫画160未能读取章节目录，请在扩展页面更新后再试")
+        }
+        return chapters
+    }
+
+    override fun pageListRequest(chapter: SChapter): Request = desktopRequest(baseUrl + chapter.url)
+
+    override fun pageListParse(response: Response): List<Page> {
+        val document = response.asJsoup()
         val script = document.selectFirst("script:containsData(qTcms_S_m_murl_e)")?.data()
             ?: return emptyList()
         val encoded = PAGE_DATA_REGEX.find(script)?.groupValues?.get(1)
@@ -214,24 +220,20 @@ abstract class Manga160 : KeiSource() {
         else -> null
     }
 
-    override fun imageRequest(page: Page): Request = Request.Builder()
-        .url(page.imageUrl!!)
-        .headers(headers)
-        .get()
-        .build()
+    override fun imageRequest(page: Page): Request = GET(page.imageUrl!!, headers)
 
     private fun decodeBase64(value: String): String = String(Base64.decode(value, Base64.DEFAULT), Charsets.UTF_8)
 
     private fun String?.meaningfulDescription(): String? = this?.trim()
         ?.takeIf { value -> value.isNotEmpty() && value.any { it != '.' && it != '…' } }
 
-    private suspend fun getDesktopDocument(url: String): Document = getDesktopDocument(url.toHttpUrl())
+    private fun desktopRequest(url: String): Request = desktopRequest(url.toHttpUrl())
 
-    private suspend fun getDesktopDocument(url: HttpUrl): Document {
+    private fun desktopRequest(url: HttpUrl): Request {
         val desktopUrl = url.newBuilder()
             .setQueryParameter("_desktop", "1")
             .build()
-        return client.get(desktopUrl, headers).asJsoup()
+        return GET(desktopUrl, headers)
     }
 
     companion object {
@@ -245,7 +247,6 @@ abstract class Manga160 : KeiSource() {
         private val MANGA_ID_REGEX = Regex("""var qTcms_S_m_id="(\d+)"""")
         private val PROXY_MODE_REGEX = Regex("""var qTcms_Pic_m_if="([^"]*)"""")
         private val MHTTP_REGEX = Regex("""var qTcms_S_m_mhttpurl="([^"]*)"""")
-        private val SUPPORTED_HOSTS = setOf("www.mh160mh.com", "m.mh160mh.com")
         private val MODERN_IMAGE_HOSTS = listOf(
             "mhpic789-5.tgmhfc.uk",
             "mhpic5er.tgmhfc.uk",

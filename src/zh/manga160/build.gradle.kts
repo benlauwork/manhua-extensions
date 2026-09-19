@@ -6,9 +6,11 @@ plugins {
 
 keiyoushi {
     name = "Manga 160"
-    versionCode = 6
+    // 1.4.2007 produces Android versionCode 106007, one higher than the previous 1.6.6
+    // build, while using the source interface supported natively by Tachimanga.
+    versionCode = 2007
     contentWarning = ContentWarning.MIXED
-    libVersion = "1.6"
+    libVersion = "1.4"
 
     source {
         name = "漫畫160"
