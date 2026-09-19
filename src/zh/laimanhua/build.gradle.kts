@@ -6,10 +6,10 @@ plugins {
 
 keiyoushi {
     name = "Lai Manhua"
-    // 1.4.2005 produces Android versionCode 106005, one higher than 1.6.4.
-    versionCode = 2005
+    // Keep the extension code above both 1.6.4 and 1.4.2005 so Tachimanga replaces either build.
+    versionCode = 2006
     contentWarning = ContentWarning.MIXED
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     source {
         lang = "zh"

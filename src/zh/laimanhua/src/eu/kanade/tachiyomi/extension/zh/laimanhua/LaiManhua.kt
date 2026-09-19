@@ -38,6 +38,13 @@ abstract class LaiManhua : HttpSource() {
             .build()
     }
 
+    private val directoryHeaders by lazy {
+        headers.newBuilder()
+            .set("User-Agent", MOBILE_USER_AGENT)
+            .set("Referer", "$DIRECTORY_BASE_URL/")
+            .build()
+    }
+
     // The image network rotates files across several CDN hosts. Retry another host when the
     // selected endpoint is unavailable instead of leaving the whole chapter blank.
     override val client: OkHttpClient = network.client.newBuilder()
@@ -157,11 +164,15 @@ abstract class LaiManhua : HttpSource() {
 
     private fun Document.metaContent(property: String): String? = selectFirst("meta[property=$property]")?.attr("content")?.takeIf { it.isNotBlank() }
 
-    override fun chapterListRequest(manga: SManga): Request = mobileRequest(manga.url)
+    override fun chapterListRequest(manga: SManga): Request = directoryRequest(manga.url)
 
     override fun chapterListParse(response: Response): List<SChapter> {
-        val chapters = response.asJsoup().select(
+        val responseCode = response.code
+        val responseUrl = response.request.url
+        val document = response.asJsoup()
+        val chapters = document.select(
             "#chapterList li > a[href], " +
+                "#chapterList_ul_1 > li > a[href], " +
                 ".plist li > a[href]",
         ).mapNotNull { anchor ->
             val name = anchor.attr("title").ifBlank { anchor.text() }
@@ -173,7 +184,7 @@ abstract class LaiManhua : HttpSource() {
         }.distinctBy { it.url }
 
         if (chapters.isEmpty()) {
-            throw Exception("来漫画未能读取章节目录，请在扩展页面更新后再试")
+            throw Exception("来漫画目录为空：HTTP $responseCode · $responseUrl · ${document.title()}")
         }
         return chapters
     }
@@ -262,10 +273,23 @@ abstract class LaiManhua : HttpSource() {
         return GET(url, mobileHeaders)
     }
 
+    private fun directoryRequest(path: String): Request {
+        val url = if (path.startsWith("http://") || path.startsWith("https://")) {
+            path.toHttpUrl().newBuilder()
+                .scheme("https")
+                .host(DIRECTORY_BASE_URL.toHttpUrl().host)
+                .build()
+        } else {
+            (DIRECTORY_BASE_URL + path).toHttpUrl()
+        }
+        return GET(url, directoryHeaders)
+    }
+
     companion object {
         private const val PAGE_SEPARATOR = "\$qingtiandy\$"
         private const val LEGACY_CHAPTER_ID_LIMIT = 542724L
         private const val MOBILE_BASE_URL = "https://m.laimanhua88.com"
+        private const val DIRECTORY_BASE_URL = "https://m.mh160mh.com"
         private const val SEARCH_BASE_URL = "https://www.mh160mh.com"
         private const val MOBILE_IMAGE_HOST = "https://xwdf.tgmhfc.uk"
         private const val DESKTOP_IMAGE_HOST = "https://mhpicwwt.tgmhfc.uk"
