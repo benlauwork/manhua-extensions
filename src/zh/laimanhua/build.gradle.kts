@@ -6,9 +6,10 @@ plugins {
 
 keiyoushi {
     name = "Lai Manhua"
-    versionCode = 4
+    // 1.4.2005 produces Android versionCode 106005, one higher than 1.6.4.
+    versionCode = 2005
     contentWarning = ContentWarning.MIXED
-    libVersion = "1.6"
+    libVersion = "1.4"
 
     source {
         lang = "zh"
