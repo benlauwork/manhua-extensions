@@ -1,5 +1,6 @@
 # Manhua Extensions
 
+- 尘柚漫画 — https://chenyouapp.com
 - 动漫屋 — https://www.dm5.cn
 - 来漫画 — https://www.laimanhua88.com
 - 漫畫160 — https://www.mh160mh.com
