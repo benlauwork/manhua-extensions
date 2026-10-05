@@ -75,7 +75,8 @@ abstract class EightComic : HttpSource() {
         return MangasPage(mangas, document.selectFirst(".pager a:has(.mdi-skip-next)") != null)
     }
 
-    override fun mangaDetailsRequest(manga: SManga): Request = GET(getMangaUrl(manga), headers)
+    // HttpSource 1.4 getMangaUrl() calls this method, so construct the URL directly.
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga = mangaDetails(response.asJsoup())
 

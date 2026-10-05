@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "Eight Comic"
-    versionCode = 1
+    versionCode = 2
     contentWarning = ContentWarning.MIXED
     // Tachimanga uses the legacy source interface.
     libVersion = "1.4"
@@ -39,7 +39,9 @@ android {
 
 dependencies {
     testImplementation(libs.junit)
-    testImplementation(libs.kotlin.stdlib)
+    testImplementation(libs.bundles.common)
+    testImplementation(libs.tachiyomi.lib.v14)
+    testImplementation("org.mockito:mockito-core:5.24.0")
 }
 
 // The source metadata processor only applies to the extension, not its unit tests.
