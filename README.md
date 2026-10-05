@@ -7,11 +7,12 @@
 - [來漫畫](https://www.laimanhua88.com)：排行榜、最新更新、GBK 搜尋、漫畫詳情、全章節及圖片解碼。
 - [漫畫1234](https://www.wmh1234.com)：排行榜、最新更新、搜尋翻頁、漫畫詳情、全章節及閱讀圖片；背景解析固定使用 `www`，WebView 則保留網站嘅 `m.` 手機版跳轉。
 - [尘柚漫畫](https://chenyouapp.com)：訪客登入、熱門、最新、搜尋翻頁、漫畫詳情、全章節及 AES 圖片清單解碼。使用 Tachimanga 相容嘅 1.4 介面；可讀取伺服器已回傳嘅廣告鎖章節，毋須播放廣告。
+- [無限動漫 8comic](https://www.8comic.com)：熱門、最新、搜尋翻頁、漫畫詳情、完整章節（包含分段話數）及圖片解碼。使用 Tachimanga 相容嘅 1.4 介面，支援主站詳情連結及 articles.onemoreplace.tw 閱讀連結。
 
-五個 extension 會分別建立 APK／JAR，但一齊寫入同一個 `index.pb`：
+六個 extension 會分別建立 APK／JAR，但一齊寫入同一個 `index.pb`：
 
 ```text
-五個網站 → 五個已簽名 extensions → 同一 repo branch/index.pb → Mihon
+六個網站 → 六個已簽名 extensions → 同一 repo branch/index.pb → Mihon
 ```
 
 ## 發佈到你自己嘅 GitHub
@@ -39,7 +40,7 @@
    https://raw.githubusercontent.com/benlauwork/manhua-extensions/repo/index.min.json
    ```
 
-更新某個 extension 時，增加對應 [`Manga 160 versionCode`](src/zh/manga160/build.gradle.kts)、[`DM5 versionCode`](src/zh/dm5/build.gradle.kts)、[`Lai Manhua versionCode`](src/zh/laimanhua/build.gradle.kts)、[`Manhua 1234 versionCode`](src/zh/manhua1234/build.gradle.kts) 或 [`Chenyou versionCode`](src/zh/chenyou/build.gradle.kts)，再推送。簽署金鑰必須一直沿用同一個，否則已安裝用戶唔會視新 APK 為可信更新。
+更新某個 extension 時，增加對應 [`Manga 160 versionCode`](src/zh/manga160/build.gradle.kts)、[`DM5 versionCode`](src/zh/dm5/build.gradle.kts)、[`Lai Manhua versionCode`](src/zh/laimanhua/build.gradle.kts)、[`Manhua 1234 versionCode`](src/zh/manhua1234/build.gradle.kts)、[`Chenyou versionCode`](src/zh/chenyou/build.gradle.kts) 或 [`Eight Comic versionCode`](src/zh/eightcomic/build.gradle.kts)，再推送。簽署金鑰必須一直沿用同一個，否則已安裝用戶唔會視新 APK 為可信更新。
 
 DM5 保留咗上游 extension 嘅 package 同 source ID，方便接續原有書庫資料。由於你私人 repo 使用自己嘅簽署金鑰，如果裝置已有 Keiyoushi 官方 DM5 extension，需要先移除官方 APK，先可以安裝呢個私人簽名版本；兩者唔可以同時安裝。
 
@@ -53,10 +54,11 @@ DM5 保留咗上游 extension 嘅 package 同 source ID，方便接續原有書�
   :src:zh:dm5:lintRelease :src:zh:dm5:assembleDebug \
   :src:zh:laimanhua:lintRelease :src:zh:laimanhua:assembleDebug \
   :src:zh:manhua1234:lintRelease :src:zh:manhua1234:assembleDebug \
-  :src:zh:chenyou:lintRelease :src:zh:chenyou:assembleDebug
+  :src:zh:chenyou:lintRelease :src:zh:chenyou:assembleDebug \
+  :src:zh:eightcomic:testDebugUnitTest :src:zh:eightcomic:lintRelease :src:zh:eightcomic:assembleDebug
 ```
 
-主要 extractor 位於 [`Manga160.kt`](src/zh/manga160/src/eu/kanade/tachiyomi/extension/zh/manga160/Manga160.kt)、[`Dm5.kt`](src/zh/dm5/src/eu/kanade/tachiyomi/extension/zh/dm5/Dm5.kt)、[`LaiManhua.kt`](src/zh/laimanhua/src/eu/kanade/tachiyomi/extension/zh/laimanhua/LaiManhua.kt)、[`Manhua1234.kt`](src/zh/manhua1234/src/eu/kanade/tachiyomi/extension/zh/manhua1234/Manhua1234.kt) 同 [`Chenyou.kt`](src/zh/chenyou/src/eu/kanade/tachiyomi/extension/zh/chenyou/Chenyou.kt)。如果網站改版，就需要更新相應 selector 或圖片解碼規則。
+主要 extractor 位於 [`Manga160.kt`](src/zh/manga160/src/eu/kanade/tachiyomi/extension/zh/manga160/Manga160.kt)、[`Dm5.kt`](src/zh/dm5/src/eu/kanade/tachiyomi/extension/zh/dm5/Dm5.kt)、[`LaiManhua.kt`](src/zh/laimanhua/src/eu/kanade/tachiyomi/extension/zh/laimanhua/LaiManhua.kt)、[`Manhua1234.kt`](src/zh/manhua1234/src/eu/kanade/tachiyomi/extension/zh/manhua1234/Manhua1234.kt)、[`Chenyou.kt`](src/zh/chenyou/src/eu/kanade/tachiyomi/extension/zh/chenyou/Chenyou.kt) 同 [`EightComic.kt`](src/zh/eightcomic/src/eu/kanade/tachiyomi/extension/zh/eightcomic/EightComic.kt)。如果網站改版，就需要更新相應 selector 或圖片解碼規則。
 
 ## 授權及責任
 
