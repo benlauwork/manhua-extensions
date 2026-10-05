@@ -2,6 +2,7 @@
 
 - 尘柚漫画 — https://chenyouapp.com
 - 动漫屋 — https://www.dm5.cn
+- 無限動漫 8comic — https://www.8comic.com
 - 来漫画 — https://www.laimanhua88.com
 - 漫畫160 — https://www.mh160mh.com
 - 漫畫1234 — https://www.wmh1234.com
