@@ -15,12 +15,17 @@ import kotlinx.coroutines.coroutineScope
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.util.concurrent.TimeUnit
 
 @Source
 abstract class Manhua1234 : KeiSource() {
+
+    // The reader sometimes stalls before sending headers, exceeding OkHttp's default 10 seconds.
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = connectTimeout(20, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
 
     // Image requests require the desktop site's Referer. Do not set a desktop User-Agent here:
     // the app WebView must remain free to follow the site's normal redirect to m.wmh1234.com.
@@ -196,27 +201,16 @@ abstract class Manhua1234 : KeiSource() {
     override fun getChapterUrl(chapter: SChapter): String = MOBILE_BASE_URL + chapter.url
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        // /go/ returns a JavaScript location.replace page, which OkHttp deliberately does not
-        // execute. Its token maps directly to the real reader endpoint.
-        val chapterPath = if (chapter.url.startsWith("/go/")) {
-            chapter.url
+        val readerUrl = if (chapter.url.startsWith("/go/")) {
+            "$READER_BASE_URL/r".toHttpUrl().newBuilder()
+                .addPathSegment(chapter.url.substringAfter("/go/").substringBefore('?'))
+                .build().toString()
         } else {
-            client.get(MOBILE_BASE_URL + chapter.url, desktopHeaders).use { it.request.url.encodedPath }
+            val redirect = getDesktopDocument(getChapterUrl(chapter))
+            Reader.redirectUrl(redirect) ?: return emptyList()
         }
-        val token = chapterPath.substringAfter("/go/", missingDelimiterValue = "")
-            .substringBefore('?')
-            .takeIf { it.isNotBlank() }
-            ?: return emptyList()
-        val readerUrl = "$READER_BASE_URL/r".toHttpUrl().newBuilder()
-            .addPathSegment(token)
-            .build()
-        val document = getDesktopDocument(readerUrl)
-        return document.select("img.reader-image[data-src]")
-            .mapIndexedNotNull { index, image ->
-                val imageUrl = image.absUrl("data-src").takeIf { it.isNotBlank() }
-                    ?: return@mapIndexedNotNull null
-                Page(index, imageUrl = imageUrl)
-            }
+        val document = Reader.retryOnTimeout { getDesktopDocument(readerUrl) }
+        return Reader.imageUrls(document).mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 
     override fun imageRequest(page: Page): Request = Request.Builder()
