@@ -5,7 +5,7 @@
 - [漫畫160](https://www.mh160mh.com)：熱門、最新、搜尋、漫畫詳情、全章節及 qTcms 圖片解碼。
 - [動漫屋 DM5](https://www.dm5.cn)：漫畫分類、排行、最新、搜尋、全章節、加密圖片 URL、Cookie 清理及可選章末吐槽頁。
 - [來漫畫](https://www.laimanhua88.com)：排行榜、最新更新、GBK 搜尋、漫畫詳情、全章節及圖片解碼。
-- [漫畫1234](https://www.wmh1234.com)：排行榜、最新更新、搜尋翻頁、漫畫詳情、全章節及閱讀圖片；背景解析固定使用 `www`，WebView 則保留網站嘅 `m.` 手機版跳轉。
+- [漫畫1234](https://www.wmh1234.com)：排行榜、最新更新、搜尋翻頁、漫畫詳情、全章節及閱讀圖片；目錄及詳情使用 `www`，章節清單使用更新較快嘅 `m.`，並支援手機版跳轉至 `reader.hqread.cc`。
 - [尘柚漫畫](https://chenyouapp.com)：訪客登入、熱門、最新、搜尋翻頁、漫畫詳情、全章節及 AES 圖片清單解碼。使用 Tachimanga 相容嘅 1.4 介面；可讀取伺服器已回傳嘅廣告鎖章節，毋須播放廣告。
 - [無限動漫 8comic](https://www.8comic.com)：熱門、最新、搜尋翻頁、漫畫詳情、完整章節（包含分段話數）及圖片解碼。使用 Tachimanga 相容嘅 1.4 介面，支援主站詳情連結及 articles.onemoreplace.tw 閱讀連結。
 

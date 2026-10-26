@@ -10,6 +10,8 @@ import keiyoushi.annotation.Source
 import keiyoushi.network.get
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -25,8 +27,7 @@ abstract class Manhua1234 : KeiSource() {
     override fun Headers.Builder.configureHeaders() = removeAll("Origin")
         .set("Referer", "$BASE_URL/")
 
-    // Catalog, detail and reader markup is complete on www but incomplete on the mobile host.
-    // Limit the desktop User-Agent to background parser requests so it cannot affect WebView.
+    // Keep the desktop layout for catalog/detail parsing without affecting WebView redirects.
     private val desktopHeaders by lazy {
         headers.newBuilder()
             .set("User-Agent", DESKTOP_USER_AGENT)
@@ -141,11 +142,17 @@ abstract class Manhua1234 : KeiSource() {
         chapters: List<SChapter>,
         fetchDetails: Boolean,
         fetchChapters: Boolean,
-    ): SMangaUpdate {
-        val document = getDesktopDocument(baseUrl + manga.url)
+    ): SMangaUpdate = coroutineScope {
+        val desktop = async { getDesktopDocument(baseUrl + manga.url) }
+        // The desktop chapter directory can lag behind the mobile site's updates.
+        val mobile = if (fetchChapters) async { getDesktopDocument(MOBILE_BASE_URL + manga.url) } else null
+        val document = desktop.await()
         val updatedManga = if (fetchDetails) parseMangaDetails(manga, document) else manga
-        val updatedChapters = if (fetchChapters) parseChapterList(document) else chapters
-        return SMangaUpdate(updatedManga, updatedChapters)
+        val updatedChapters = mobile?.await()?.let {
+            Chapter.mobile(it, Chapter.desktop(document) + chapters.map { chapter -> Chapter(chapter.name, chapter.url) })
+                .map { chapter -> chapter.toSChapter() }
+        } ?: chapters
+        SMangaUpdate(updatedManga, updatedChapters)
     }
 
     private fun parseMangaDetails(manga: SManga, document: Document): SManga = SManga.create().apply {
@@ -186,22 +193,17 @@ abstract class Manhua1234 : KeiSource() {
 
     private fun Document.metaContent(property: String): String? = selectFirst("meta[property=$property]")?.attr("content")?.takeIf { it.isNotBlank() }
 
-    private fun parseChapterList(document: Document): List<SChapter> = document.select(".mint-chapters a[href^=/go/]")
-        .mapNotNull { anchor ->
-            val name = anchor.attr("title").ifBlank { anchor.text() }
-                .takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            SChapter.create().apply {
-                this.name = name
-                setUrlWithoutDomain(anchor.absUrl("href"))
-            }
-        }
-        .distinctBy { it.url }
-        .asReversed()
+    override fun getChapterUrl(chapter: SChapter): String = MOBILE_BASE_URL + chapter.url
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         // /go/ returns a JavaScript location.replace page, which OkHttp deliberately does not
         // execute. Its token maps directly to the real reader endpoint.
-        val token = chapter.url.substringAfter("/go/", missingDelimiterValue = "")
+        val chapterPath = if (chapter.url.startsWith("/go/")) {
+            chapter.url
+        } else {
+            client.get(MOBILE_BASE_URL + chapter.url, desktopHeaders).use { it.request.url.encodedPath }
+        }
+        val token = chapterPath.substringAfter("/go/", missingDelimiterValue = "")
             .substringBefore('?')
             .takeIf { it.isNotBlank() }
             ?: return emptyList()
@@ -229,6 +231,7 @@ abstract class Manhua1234 : KeiSource() {
 
     companion object {
         private const val BASE_URL = "https://www.wmh1234.com"
+        private const val MOBILE_BASE_URL = "https://m.wmh1234.com"
         private const val READER_BASE_URL = "https://reader.hqread.cc"
         private const val DESKTOP_USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +

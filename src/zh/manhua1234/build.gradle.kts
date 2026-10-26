@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "Manhua 1234"
-    versionCode = 2
+    versionCode = 3
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 
@@ -19,4 +19,23 @@ keiyoushi {
     deeplink {
         path("/comic/..*")
     }
+}
+
+android {
+    sourceSets.named("test") {
+        java.directories.add("test")
+        kotlin.directories.add("test")
+        resources.directories.add("test-resources")
+    }
+}
+
+dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.bundles.common)
+    testImplementation(libs.tachiyomi.lib.v16)
+}
+
+// Source metadata is only generated for the extension itself.
+tasks.matching { it.name.startsWith("ksp") && it.name.endsWith("UnitTestKotlin") }.configureEach {
+    enabled = false
 }
