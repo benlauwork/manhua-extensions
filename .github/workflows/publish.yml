@@ -65,7 +65,9 @@ jobs:
             :src:zh:chenyou:assembleRelease \
             :src:zh:eightcomic:testDebugUnitTest \
             :src:zh:eightcomic:lintRelease \
-            :src:zh:eightcomic:assembleRelease
+            :src:zh:eightcomic:assembleRelease \
+            :src:zh:baoziddmanga:lintRelease \
+            :src:zh:baoziddmanga:assembleRelease
 
       - name: Prepare release metadata
         id: outputs
@@ -79,6 +81,7 @@ jobs:
           test -f src/zh/manhua1234/build/keiyoushi-source-info.json
           test -f src/zh/chenyou/build/keiyoushi-source-info.json
           test -f src/zh/eightcomic/build/keiyoushi-source-info.json
+          test -f src/zh/baoziddmanga/build/keiyoushi-source-info.json
           fingerprint=$(keytool -exportcert -keystore signingkey.jks -alias "$ALIAS" -storepass "$KEY_STORE_PASSWORD" | sha256sum | cut -d' ' -f1)
           tag="build-${GITHUB_SHA::7}"
           echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
@@ -103,9 +106,11 @@ jobs:
               src/zh/chenyou/build/outputs/jar/release \
               src/zh/eightcomic/build/outputs/apk/release \
               src/zh/eightcomic/build/outputs/jar/release \
+              src/zh/baoziddmanga/build/outputs/apk/release \
+              src/zh/baoziddmanga/build/outputs/jar/release \
               -type f \( -name '*.apk' -o -name '*.jar' \) | sort
           )
-          test "${#assets[@]}" -eq 12
+          test "${#assets[@]}" -eq 14
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
           else
@@ -128,9 +133,10 @@ jobs:
             --source-info src/zh/manhua1234/build/keiyoushi-source-info.json \
             --source-info src/zh/chenyou/build/keiyoushi-source-info.json \
             --source-info src/zh/eightcomic/build/keiyoushi-source-info.json \
+            --source-info src/zh/baoziddmanga/build/keiyoushi-source-info.json \
             --signing-fingerprint "$FINGERPRINT" \
             --output "$output"
-          python .github/scripts/verify_repo.py "$output" --expected-extensions 6
+          python .github/scripts/verify_repo.py "$output" --expected-extensions 7
 
       - name: Update repo branch
         env:
