@@ -1,5 +1,6 @@
 # Manhua Extensions
 
+- 包子漫畫 (DDManga) — https://www.ddmanga.com
 - 尘柚漫画 — https://chenyouapp.com
 - 动漫屋 — https://www.dm5.cn
 - 無限動漫 8comic — https://www.8comic.com
