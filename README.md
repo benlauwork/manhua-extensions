@@ -9,11 +9,12 @@
 - [尘柚漫畫](https://chenyouapp.com)：訪客登入、熱門、最新、搜尋翻頁、漫畫詳情、全章節及 AES 圖片清單解碼。使用 Tachimanga 相容嘅 1.4 介面；可讀取伺服器已回傳嘅廣告鎖章節，毋須播放廣告。
 - [無限動漫 8comic](https://www.8comic.com)：熱門、最新、搜尋翻頁、漫畫詳情、完整章節（包含分段話數）及圖片解碼。使用 Tachimanga 相容嘅 1.4 介面，支援主站詳情連結及 articles.onemoreplace.tw 閱讀連結。
 - [包子漫畫 (DDManga)](https://www.ddmanga.com)：熱門、最新上架、繁簡體搜尋、漫畫詳情同章節閱讀。閱讀時會依次載入同一話嘅分頁，並略過重複圖片。
+- [嬉皮漫畫](https://m.hipmh.com)：人氣榜、最新更新、繁簡體搜尋、漫畫詳情同完整章節閱讀。
 
-七個 extension 會分別建立 APK／JAR，再一齊寫入同一個 `index.pb`：
+八個 extension 會分別建立 APK／JAR，再一齊寫入同一個 `index.pb`：
 
 ```text
-七個網站 → 七個已簽名 extensions → 同一 repo branch/index.pb → Mihon
+八個網站 → 八個已簽名 extensions → 同一 repo branch/index.pb → Mihon
 ```
 
 ## 發佈到你自己嘅 GitHub
