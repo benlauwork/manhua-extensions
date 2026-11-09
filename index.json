@@ -1,6 +1,6 @@
 {
   "name": "Manhua Extensions",
-  "badgeLabel": "7 sources",
+  "badgeLabel": "8 sources",
   "signingKey": "6d49d56311e9d842166ea1fde30cd10740ed941fbbf343fc6a9efab60f391f09",
   "contact": {
     "website": "https://github.com/benlauwork/manhua-extensions"
@@ -11,9 +11,9 @@
         "name": "Baozi Manhua (DDManga)",
         "packageName": "eu.kanade.tachiyomi.extension.zh.baoziddmanga",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.baoziddmanga-v1.6.1.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.baoziddmanga-v1.6.1.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/baoziddmanga/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.baoziddmanga-v1.6.1.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.baoziddmanga-v1.6.1.jar"
         },
         "extensionLib": "1.6",
         "versionCode": "106001",
@@ -32,9 +32,9 @@
         "name": "Chenyou",
         "packageName": "eu.kanade.tachiyomi.extension.zh.chenyou",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.chenyou-v1.4.1.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.chenyou-v1.4.1.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/chenyou/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.chenyou-v1.4.1.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.chenyou-v1.4.1.jar"
         },
         "extensionLib": "1.4",
         "versionCode": "104001",
@@ -53,9 +53,9 @@
         "name": "Dm5",
         "packageName": "eu.kanade.tachiyomi.extension.zh.dm5",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.dm5-v1.4.13.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.dm5-v1.4.13.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/dm5/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.dm5-v1.4.13.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.dm5-v1.4.13.jar"
         },
         "extensionLib": "1.4",
         "versionCode": "104013",
@@ -78,9 +78,9 @@
         "name": "Eight Comic",
         "packageName": "eu.kanade.tachiyomi.extension.zh.eightcomic",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.eightcomic-v1.4.2.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.eightcomic-v1.4.2.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/eightcomic/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.eightcomic-v1.4.2.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.eightcomic-v1.4.2.jar"
         },
         "extensionLib": "1.4",
         "versionCode": "104002",
@@ -96,12 +96,33 @@
         ]
       },
       {
+        "name": "HipMH",
+        "packageName": "eu.kanade.tachiyomi.extension.zh.hipmh",
+        "resources": {
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.hipmh-v1.6.1.apk",
+          "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/hipmh/res/mipmap-xhdpi/ic_launcher.png",
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.hipmh-v1.6.1.jar"
+        },
+        "extensionLib": "1.6",
+        "versionCode": "106001",
+        "versionName": "1.6.1",
+        "contentWarning": "CONTENT_WARNING_MIXED",
+        "sources": [
+          {
+            "id": "10879178251255350",
+            "name": "\u5b09\u76ae\u6f2b\u756b",
+            "language": "zh",
+            "homeUrl": "https://m.hipmh.com"
+          }
+        ]
+      },
+      {
         "name": "Lai Manhua",
         "packageName": "eu.kanade.tachiyomi.extension.zh.laimanhua",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.laimanhua-v1.4.2006.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.laimanhua-v1.4.2006.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/laimanhua/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.laimanhua-v1.4.2006.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.laimanhua-v1.4.2006.jar"
         },
         "extensionLib": "1.4",
         "versionCode": "106006",
@@ -120,9 +141,9 @@
         "name": "Manga 160",
         "packageName": "eu.kanade.tachiyomi.extension.zh.manga160",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.manga160-v1.4.2008.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.manga160-v1.4.2008.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/manga160/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.manga160-v1.4.2008.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.manga160-v1.4.2008.jar"
         },
         "extensionLib": "1.4",
         "versionCode": "106008",
@@ -141,9 +162,9 @@
         "name": "Manhua 1234",
         "packageName": "eu.kanade.tachiyomi.extension.zh.manhua1234",
         "resources": {
-          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.manhua1234-v1.6.4.apk",
+          "apkUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.manhua1234-v1.6.4.apk",
           "iconUrl": "https://raw.githubusercontent.com/benlauwork/manhua-extensions/main/src/zh/manhua1234/res/mipmap-xhdpi/ic_launcher.png",
-          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-d6e68bc/tachiyomi-zh.manhua1234-v1.6.4.jar"
+          "jarUrl": "https://github.com/benlauwork/manhua-extensions/releases/download/build-abe4ced/tachiyomi-zh.manhua1234-v1.6.4.jar"
         },
         "extensionLib": "1.6",
         "versionCode": "106004",
